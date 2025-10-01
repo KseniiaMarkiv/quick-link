@@ -11,6 +11,50 @@
     <!-- Bootstrap 5.3 (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Toggle on click (for mobile / keyboard). Close on outside click or Esc.
+        document.querySelectorAll('.options-toggle').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const menuWrap = btn.closest('.options-menu');
+            // close others
+            document.querySelectorAll('.options-menu.is-open').forEach(w => { if (w!==menuWrap) w.classList.remove('is-open'); });
+            menuWrap.classList.toggle('is-open');
+          });
+        });
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('.options-menu')) {
+            document.querySelectorAll('.options-menu.is-open').forEach(w => w.classList.remove('is-open'));
+          }
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            document.querySelectorAll('.options-menu.is-open').forEach(w => w.classList.remove('is-open'));
+          }
+        });
+      });
+    </script>
+
+    <script>
+      // Global confirm for any <form data-turbo-confirm="..."> or data-confirm="...".
+      // Works without Turbo or Rails-UJS. Captures before the submit reaches the server.
+      (function () {
+        document.addEventListener('submit', function (e) {
+          const form = e.target;
+          if (!(form instanceof HTMLFormElement)) return;
+
+          const msg = form.dataset.turboConfirm || form.dataset.confirm;
+          if (!msg) return;
+
+          if (!window.confirm(msg)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        }, true); // capture so we run before anything else
+      })();
+    </script>
+
 
     <style>
       /* tiny helpers to resemble your screenshots */
@@ -39,8 +83,20 @@
     </nav>
 
     <div class="container-fluid p-5">
-      <% if notice %><div class="alert alert-success"><%= notice %></div><% end %>
-      <% if alert  %><div class="alert alert-danger"><%= alert %></div><% end %>
+      <% if notice %>
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
+          <div><%= notice %></div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <% end %>
+
+      <% if alert %>
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
+          <div><%= alert %></div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <% end %>
+
       <%= yield %>
     </div>
   </body>

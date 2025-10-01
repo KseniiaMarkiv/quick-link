@@ -1,10 +1,21 @@
-/*
- * This is a manifest file that'll be compiled into application.css.
- *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
- *
- * Consider organizing styles into separate files for maintainability.
- */
+/* Animated options flyout */
+.options-menu { position: relative; display: inline-block; }
+.options-menu .menu {
+  position: absolute; right: 0; top: 100%;
+  margin-top: .25rem; padding: .5rem;
+  background: #ffffff7c; border-radius: .75rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  opacity: 0; transform: translateY(8px) scale(.98);
+  transition: opacity .25s ease, transform .25s ease, visibility 0s .25s;
+  visibility: hidden; min-width: 9.5rem; z-index: 1000;
+}
+.options-menu .menu .btn { display: block; width: 100%; text-align: left; margin-bottom: .4rem; }
+.options-menu .menu .btn:last-child { margin-bottom: 0; }
+
+/* show on hover/focus (desktop + keyboard) */
+.options-menu:hover .menu,
+.options-menu:focus-within .menu,
+.options-menu.is-open .menu {
+  opacity: 1; transform: translateY(0) scale(1);
+  transition-delay: 0s; visibility: visible;
+}
