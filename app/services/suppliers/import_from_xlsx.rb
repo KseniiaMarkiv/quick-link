@@ -1,75 +1,88 @@
+# app/services/suppliers/import_from_xlsx.rb
+require "roo"
+
 module Suppliers
   class ImportFromXlsx
     class HeaderError < StandardError; end
 
-    # Canonical labels (for docs/exports only)
-    CANON = ["No", "Category", "Group by color", "Name", "SKU", "Active", "Inactive", "link"].freeze
-    # For matching: downcased
-    EXPECTED_DOWN = CANON.map { |h| h.downcase }.freeze
+    # Canonical labels we want in this order (used for export and mapping)
+    CANON = ["No", "Category", "Group by color", "Name", "SKU", "Active", "Inactive", "Link"].freeze
+    CANON_DOWN = CANON.map { |h| h.downcase } # for matching
 
     def self.call(uploaded_io)
       ext   = File.extname(uploaded_io.original_filename).delete(".").downcase
       book  = Roo::Spreadsheet.open(uploaded_io.tempfile.path, extension: ext)
-      sheet = book.sheet(0)
+      sheet = book.sheet("Sheet1")
 
-      norm = ->(s) { s.to_s.gsub(/\u00A0/, " ").strip }               # trim + replace NBSP
-      nlow = ->(s) { norm.call(s).downcase.gsub(/\s+/, " ") }         # normalized lower-case
+      Rails.logger.debug "[IMPORT] Sheets: #{book.sheets.inspect}"
+      Rails.logger.debug "[IMPORT] Last row: #{sheet.last_row.inspect}"
+      (1..5).each do |i|
+        Rails.logger.debug "[IMPORT] Row #{i}: #{sheet.row(i).inspect}"
+      end
 
-      # ----- locate header row (scan first 20 rows) -----
+      norm = ->(s) { s.to_s.gsub(/\u00A0/, " ").strip }              # trim + replace NBSP
+      nlow = ->(s) { norm.call(s).downcase.gsub(/\s+/, " ") }        # normalized lower
+
+      # ---- find header row within the first 20 rows ----
       header_index = nil
+      header_preview = nil
       (1..20).each do |row_idx|
-        raw = safe_row(sheet, row_idx)
-        next if raw.nil? || raw.compact.empty?
-        low = raw.map { |v| nlow.call(v) }.reject { |v| v.nil? || v == "" }
-        # Only compare the first CANON.size columns, ignore extras
-        if low.first(EXPECTED_DOWN.size) == EXPECTED_DOWN
+        row = safe_row(sheet, row_idx)
+        next if row.nil? || row.compact.empty?
+        header_preview ||= row # remember the very first non-empty row for debugging
+        Rails.logger.debug "[IMPORT] Header found at row #{header_index}: #{sheet.row(header_index).inspect}"
+
+        low = row.map { |v| nlow.call(v) }.reject(&:empty?)
+        if low.first(CANON_DOWN.size) == CANON_DOWN
           header_index = row_idx
           break
         end
       end
-      raise HeaderError, "Missing header row. Expected: #{CANON.join(', ')}" if header_index.nil?
 
-      # ----- import rows after header -----
-      start_row     = header_index + 1
-      blank_streak  = 0
-      imported_rows = 0
+      if header_index.nil?
+        # Helpful debug in flash + logs
+        msg = "Missing header row. Expected: #{CANON.join(', ')}"
+        msg << ". First non-empty row seen by Roo: #{Array(header_preview).map { |v| v.to_s }.join(' | ')}" if header_preview
+        Rails.logger.warn("[IMPORT] #{msg}")
+        raise HeaderError, msg
+      end
 
-      Supplier.delete_all  # remove for additive behavior
+      # ---- import rows after header ----
+      Supplier.delete_all # remove this if you want additive imports
 
-      row_idx = start_row
+      imported = 0
+      blank_streak = 0
+      row_idx = header_index + 1
+
       while blank_streak < 25
         values = safe_row(sheet, row_idx)
-        break if values.nil?
+        break if values.nil? # sheet ended
 
         if blank_row?(values)
           blank_streak += 1
         else
           blank_streak = 0
-          # Map by position (first N columns)
-          vals = values.first(CANON.size)
-          rowh = Hash[ CANON.zip(vals) ]
-
+          data = Hash[ CANON.zip(values.first(CANON.size)) ]
           Supplier.create!(
-            no:             integerish(rowh["No"]),
-            category:       norm.call(rowh["Category"]),
-            group_by_color: norm.call(rowh["Group by color"]),
-            name:           norm.call(rowh["Name"]),
-            sku:            norm.call(rowh["SKU"]),
-            active:         truthy?(rowh["Active"]),
-            inactive:       truthy?(rowh["Inactive"]),
-            link:           norm.call(rowh["link"])
+            no:             integerish(data["No"]),
+            category:       norm.call(data["Category"]),
+            group_by_color: norm.call(data["Group by color"]),
+            name:           norm.call(data["Name"]),
+            sku:            norm.call(data["SKU"]),
+            active:         truthy?(data["Active"]),
+            inactive:       truthy?(data["Inactive"]),
+            link:           norm.call(data["Link"])
           )
-          imported_rows += 1
+          imported += 1
         end
 
         row_idx += 1
       end
 
-      imported_rows
+      imported
     end
 
-    # --- helpers ---
-
+    # ------- helpers -------
     def self.safe_row(sheet, idx)
       r = sheet.row(idx) rescue nil
       r.is_a?(Array) ? r : (r.nil? ? nil : Array(r))

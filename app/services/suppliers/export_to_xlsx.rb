@@ -7,7 +7,7 @@ module Suppliers
       wb  = pkg.workbook
 
       wb.add_worksheet(name: "Suppliers") do |sheet|
-        headers = ["No", "Category", "Group by color", "Name", "SKU", "Active", "Inactive", "link"]
+        headers = ["No", "Category", "Group by color", "Name", "SKU", "Active", "Inactive", "Link"]
         sheet.add_row headers, style: header_style(wb)
 
         Supplier.order(:no, :id).find_each do |s|

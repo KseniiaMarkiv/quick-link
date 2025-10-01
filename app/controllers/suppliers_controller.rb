@@ -47,7 +47,7 @@ class SuppliersController < ApplicationController
 
   # GET /suppliers/import_form
   def import_form
-    @expected_headers = %w[No Category Group\ by\ color Name SKU Active Inactive link]
+    @expected_headers = %w[No Category Group\ by\ color Name SKU Active Inactive Link]
   end
 
   # POST /suppliers/import_from_excel
