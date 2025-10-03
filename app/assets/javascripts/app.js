@@ -37,3 +37,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, true); // capture phase to intercept before submit proceeds
 })();
+
+// Ensure only one of the two checkboxes (Active/Inactive) is checked at a time
+document.addEventListener("change", function (e) {
+  if (e.target && e.target.id === "supplier_active") {
+    if (e.target.checked) {
+      const other = document.getElementById("supplier_inactive");
+      if (other) other.checked = false;
+    }
+  }
+  if (e.target && e.target.id === "supplier_inactive") {
+    if (e.target.checked) {
+      const other = document.getElementById("supplier_active");
+      if (other) other.checked = false;
+    }
+  }
+});
