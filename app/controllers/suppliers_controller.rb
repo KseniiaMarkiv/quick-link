@@ -73,6 +73,11 @@ class SuppliersController < ApplicationController
     send_data pkg.to_stream.read, filename:, type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   end
 
+  def clear_all
+    Supplier.delete_all
+    redirect_to suppliers_path, notice: "All supplier records were cleared."
+  end
+
   private
 
   def set_supplier

@@ -6,6 +6,7 @@ Rails.application.routes.draw do
       get  :import_form          # /suppliers/import_form
       post :import_from_excel    # /suppliers/import_from_excel
       get  :download_xlsx        # /suppliers/download_xlsx
+      delete :clear_all          # /suppliers/clear_all
     end
   end
 end
