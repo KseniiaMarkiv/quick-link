@@ -32,7 +32,7 @@ gem "kamal", require: false
 gem "thruster", require: false
 
 # For reading .xlsx/.xls files
-gem "roo", "~> 2.10"
+gem "roo", "~> 3.0"
 
 # For generating .xlsx files (Axlsx community fork)
 gem "caxlsx", "~> 4.2"
